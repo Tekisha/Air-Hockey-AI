@@ -24,6 +24,8 @@ def main():
             elif event.type == pygame.MOUSEMOTION:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 game.move_paddle(1, mouse_x, mouse_y)
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_BACKSPACE:
+                game.reset_game()
 
         game.update_game_state()
         gui.update(game.paddle1_pos, game.paddle2_pos, game.puck_pos, game.goals)

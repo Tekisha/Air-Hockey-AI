@@ -1,7 +1,12 @@
 from math import atan2, cos, sin
+from random import randrange
 
 
 class GameCore:
+    def set_random_puck_speed(self):
+        self.puck_speed["x"] = randrange(-5, 5, 2)
+        self.puck_speed["y"] = randrange(-5, 5)
+
     def __init__(self, gui, board_width, board_height):
         self.gui = gui
         self.running = True
@@ -14,11 +19,12 @@ class GameCore:
         self.paddle1_velocity = {"x": 0, "y": 0}
         self.paddle2_velocity = {"x": 0, "y": 0}
         self.puck_pos = {"x": board_width // 2, "y": board_height // 2}
-        self.puck_speed = {"x": 5.0, "y": 3.0}
+        self.puck_speed = {"x": 0.0, "y": 0.0}
         self.goals = {"left": 0, "right": 0}
         self.max_goals = 7
         self.goal_size = 200  # Height of the goal area
         self.friction = 0.997  # Friction coefficient to reduce speed over time
+        self.set_random_puck_speed()
 
     def update_game_state(self):
         # Apply friction to puck speed
@@ -85,10 +91,12 @@ class GameCore:
     def move_paddle(self, player, x_pos, y_pos):
         if player == 1:
             self.paddle1_velocity = {
-                "x": min(x_pos, self.board_width // 2 - self.paddle_radius)
-                - self.paddle1_pos["x"],
-                "y": min(y_pos, self.board_height // 2 - self.paddle_radius)
-                - self.paddle1_pos["y"],
+                # "x": min(x_pos, self.board_width // 2 - self.paddle_radius)
+                # - self.paddle1_pos["x"],
+                # "y": min(y_pos, self.board_height // 2 - self.paddle_radius)
+                # - self.paddle1_pos["y"],
+                "x": x_pos - self.paddle1_pos["x"],
+                "y": y_pos - self.paddle1_pos["y"],
             }
             self.paddle1_pos["x"] = max(
                 self.paddle_radius,
@@ -116,5 +124,4 @@ class GameCore:
         self.paddle1_velocity = {"x": 0, "y": 0}
         self.paddle2_velocity = {"x": 0, "y": 0}
         self.puck_pos = {"x": self.board_width // 2, "y": self.board_height // 2}
-        self.puck_speed = {"x": 5.0, "y": 3.0}
-
+        self.set_random_puck_speed()

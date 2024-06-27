@@ -48,7 +48,8 @@ def select_action(state, policy_net, steps_done, epsilon_end, epsilon_start, eps
         with torch.no_grad():
             return policy_net(state).max(1)[1].view(1, 1)
     else:
-        return torch.tensor([[random.randrange(n_actions)]], dtype=torch.long)
+        return torch.tensor([[random.randrange(n_actions)]], dtype=torch.long).to(state.device)
+
 
 
 def optimize_model(memory, batch_size, policy_net, target_net, optimizer, gamma):

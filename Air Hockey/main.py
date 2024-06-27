@@ -7,14 +7,14 @@ from dqn import DQN
 from game_core import GameCore
 from gui_core import GUICore
 from test_model import test_model
-from train_dqn import train_dqn, train_dqn_bot_vs_bot
+from train_dqn import train_dqn_bot_vs_bot
 
 
 # Main function
 def main():
     global state_dim, n_actions
 
-    state_dim = 13
+    state_dim = 9
     n_actions = 9
 
     # if len(sys.argv) < 2:
@@ -24,7 +24,7 @@ def main():
     # mode = sys.argv[1]
     mode = ""
     if mode == "train":
-        train_dqn(state_dim, n_actions)
+        train_dqn_bot_vs_bot(state_dim, n_actions)
     elif mode == "test_player_vs_bot":
         policy_net = DQN(state_dim, n_actions)
         policy_net.load_state_dict(torch.load("policy_net.pth"))

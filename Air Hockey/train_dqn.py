@@ -1,8 +1,9 @@
 import pygame
 import torch
 from torch import optim
+from torch.optim.lr_scheduler import StepLR
 
-from dqn import DQN, ReplayBuffer, select_action, optimize_model
+from dqn import DQN, ReplayBuffer, select_action, train
 from game_core import GameCore
 from gui_core import GUICore
 
@@ -98,6 +99,7 @@ from gui_core import GUICore
 #
 #     print("Training completed")
 
+
 def train_dqn_bot_vs_bot(state_dim, n_actions, load_model=False):
     # Initialize the environment
     pygame.init()
@@ -111,14 +113,18 @@ def train_dqn_bot_vs_bot(state_dim, n_actions, load_model=False):
 
     # Define hyperparameters
     n_episodes = 5000
-    max_steps = 50000
     gamma = 0.99
-    epsilon_start = 1.0
-    epsilon_end = 0.1
-    epsilon_decay = 5000
-    target_update = 1
+    epsilon_min = 0.01
+    epsilon = 1
+    epsilon_decay = 0.995
+    min_episodes = 5
+    update_step = 5
+    update_repeats = 30
     memory_capacity = 50000
     batch_size = 128
+    lr_step = 100
+    lr_gamma = 0.9
+    lr = 1e-3
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -127,6 +133,11 @@ def train_dqn_bot_vs_bot(state_dim, n_actions, load_model=False):
     target_net1 = DQN(state_dim, n_actions).to(device)
     policy_net2 = DQN(state_dim, n_actions).to(device)
     target_net2 = DQN(state_dim, n_actions).to(device)
+
+    for param in target_net1.parameters():
+        param.requires_grad = False
+    for param in target_net2.parameters():
+        param.requires_grad = False
 
     if load_model:
         try:
@@ -141,13 +152,16 @@ def train_dqn_bot_vs_bot(state_dim, n_actions, load_model=False):
     target_net1.eval()
     target_net2.eval()
 
-    optimizer1 = optim.Adam(policy_net1.parameters())
-    optimizer2 = optim.Adam(policy_net2.parameters())
+    optimizer1 = optim.Adam(policy_net1.parameters(), lr=lr)
+    optimizer2 = optim.Adam(policy_net2.parameters(), lr=lr)
+
+    scheduler1 = StepLR(optimizer1, step_size=lr_step, gamma=lr_gamma)
+    scheduler2 = StepLR(optimizer2, step_size=lr_step, gamma=lr_gamma)
+
     memory1 = ReplayBuffer(memory_capacity)
     memory2 = ReplayBuffer(memory_capacity)
 
-    steps_done1 = 0
-    steps_done2 = 0
+    steps_done = 0
     clock = pygame.time.Clock()
 
     for episode in range(n_episodes):
@@ -155,17 +169,17 @@ def train_dqn_bot_vs_bot(state_dim, n_actions, load_model=False):
         game.reset_game()
         state = game.get_state()
         state = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)
+        done = False
 
-        for t in range(max_steps):
+        while not done:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     return
 
-            action1 = select_action(state, policy_net1, steps_done1, epsilon_end, epsilon_start, epsilon_decay, n_actions)
-            action2 = select_action(state, policy_net2, steps_done2, epsilon_end, epsilon_start, epsilon_decay, n_actions)
-            steps_done1 += 1
-            steps_done2 += 1
+            action1 = select_action(state, target_net1, epsilon, n_actions)
+            action2 = select_action(state, target_net2, epsilon, n_actions)
+            steps_done += 1
 
             game.take_action(action1.item(), 1)  # Bot 1 controls paddle 1
             game.take_action(action2.item(), 2)  # Bot 2 controls paddle 2
@@ -173,14 +187,16 @@ def train_dqn_bot_vs_bot(state_dim, n_actions, load_model=False):
             game.update_game_state()
 
             next_state = game.get_state()
-            next_state = torch.tensor(next_state, dtype=torch.float32).unsqueeze(0).to(device)
+            next_state = (
+                torch.tensor(next_state, dtype=torch.float32).unsqueeze(0).to(device)
+            )
 
             reward1 = game.get_reward(1)
             reward2 = game.get_reward(2)
 
             if reward1 > 0.5 or reward2 > 0.5:
                 print("+++++++++++++++++")
-                print("Episode:" + str(episode) + " Steps1:" + str(steps_done1) + " Steps2:" + str(steps_done2))
+                print("Episode:" + str(episode) + " Steps:" + str(steps_done))
                 print("Reward1:" + str(reward1))
                 print("Reward2:" + str(reward2))
 
@@ -201,24 +217,29 @@ def train_dqn_bot_vs_bot(state_dim, n_actions, load_model=False):
             memory1.push(state, action1, reward1, next_state, done)
             memory2.push(state, action2, reward2, next_state, done)
 
-            state = next_state
-
-            optimize_model(memory1, batch_size, policy_net1, target_net1, optimizer1, gamma)
-            optimize_model(memory2, batch_size, policy_net2, target_net2, optimizer2, gamma)
-
             gui.update(game.paddle1_pos, game.paddle2_pos, game.puck_pos, game.goals)
-            game.draw_q_values(screen, policy_net1, policy_net2, state, game.action_map)
+            game.draw_q_values(screen, target_net1, target_net2, state, game.action_map)
             pygame.display.flip()
             clock.tick(100)  # Limit to 240 frames per second
 
             if done:
                 break
 
-        if episode % target_update == 0:
+        if episode >= min_episodes and episode % update_step == 0:
+            print("Starting training!")
+            for _ in range(update_repeats):
+                train(memory1, batch_size, policy_net1, target_net1, optimizer1, gamma)
+                train(memory2, batch_size, policy_net2, target_net2, optimizer2, gamma)
+
+            print("Training done!")
             target_net1.load_state_dict(policy_net1.state_dict())
             target_net2.load_state_dict(policy_net2.state_dict())
 
-        # Save the model periodically
+            scheduler1.step()
+            scheduler2.step()
+
+            epsilon = max(epsilon * epsilon_decay, epsilon_min)
+
         if episode % 50 == 0:
             torch.save(policy_net1.state_dict(), f"policy_net1_{episode}.pth")
             torch.save(target_net1.state_dict(), f"target_net1_{episode}.pth")
@@ -232,8 +253,3 @@ def train_dqn_bot_vs_bot(state_dim, n_actions, load_model=False):
     torch.save(target_net2.state_dict(), "target_net2.pth")
 
     print("Training completed")
-
-
-
-
-

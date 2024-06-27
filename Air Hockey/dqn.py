@@ -6,7 +6,10 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 
-Transition = namedtuple('Transition', ('state', 'action', 'reward', 'next_state', 'done'))
+Transition = namedtuple(
+    "Transition", ("state", "action", "reward", "next_state", "done")
+)
+
 
 class DQN(nn.Module):
     def __init__(self, state_dim, action_dim):
@@ -15,14 +18,17 @@ class DQN(nn.Module):
         self.fc2 = nn.Linear(128, 128)
         self.fc3 = nn.Linear(128, action_dim)
 
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
+    def forward(self, input):
+
+        x = F.leaky_relu(self.fc1(input))
+        x = F.leaky_relu(self.fc2(x))
         x = self.fc3(x)
+
         return x
 
 
 class ReplayBuffer:
+
     def __init__(self, capacity):
         self.capacity = capacity
         self.memory = []
@@ -41,19 +47,18 @@ class ReplayBuffer:
         return len(self.memory)
 
 
-def select_action(state, policy_net, steps_done, epsilon_end, epsilon_start, epsilon_decay, n_actions):
-    sample = random.random()
-    epsilon_threshold = epsilon_end + (epsilon_start - epsilon_end) * np.exp(-1. * steps_done / epsilon_decay)
-    if sample > epsilon_threshold:
+def select_action(state, model, eps, n_actions):
+    if random.random() > eps:
         with torch.no_grad():
-            return policy_net(state).max(1)[1].view(1, 1)
+            return model(state).max(1)[1].view(1, 1)
     else:
-        return torch.tensor([[random.randrange(n_actions)]], dtype=torch.long).to(state.device)
+        return torch.tensor([[random.randrange(n_actions)]], dtype=torch.long).to(
+            state.device
+        )
 
 
-
-def optimize_model(memory, batch_size, policy_net, target_net, optimizer, gamma):
-    if len(memory) < batch_size:
+def train(memory, batch_size, policy_net, target_net, optimizer, gamma):
+    if len(memory.memory) < batch_size:
         return
 
     transitions = memory.sample(batch_size)
@@ -69,7 +74,9 @@ def optimize_model(memory, batch_size, policy_net, target_net, optimizer, gamma)
 
     next_state_values = target_net(next_state_batch).max(1)[0].detach()
 
-    expected_state_action_values = (next_state_values * gamma * (1 - done_batch)) + reward_batch
+    expected_state_action_values = (
+        next_state_values * gamma * (1 - done_batch)
+    ) + reward_batch
 
     expected_state_action_values = expected_state_action_values.unsqueeze(1)
 
@@ -77,6 +84,3 @@ def optimize_model(memory, batch_size, policy_net, target_net, optimizer, gamma)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-
-
-

@@ -1,5 +1,8 @@
-from math import atan2, cos, sin
+from math import atan2, cos, sin, degrees, radians
 from random import randrange
+
+import numpy as np
+import pygame
 
 
 class GameCore:
@@ -21,10 +24,27 @@ class GameCore:
         self.puck_pos = {"x": board_width // 2, "y": board_height // 2}
         self.puck_speed = {"x": 0.0, "y": 0.0}
         self.goals = {"left": 0, "right": 0}
-        self.max_goals = 7
+        self.max_goals = 5000
         self.goal_size = 200  # Height of the goal area
         self.friction = 0.997  # Friction coefficient to reduce speed over time
         self.set_random_puck_speed()
+
+        self.speed = 5  # Speed of the bot
+        self.action_map = {
+            0: (0, -self.speed),  # Up
+            1: (0, self.speed),  # Down
+            2: (-self.speed, 0),  # Left
+            3: (self.speed, 0),  # Right
+            4: (-self.speed, -self.speed),  # Up-Left
+            5: (self.speed, -self.speed),  # Up-Right
+            6: (-self.speed, self.speed),  # Down-Left
+            7: (self.speed, self.speed),  # Down-Right
+            8: (0, 0)  # Stand still
+        }
+
+        # Timer for detecting no puck hit
+        self.last_hit_time = pygame.time.get_ticks()
+        self.max_no_hit_duration = 20000  # 20 seconds
 
     def update_game_state(self):
         # Apply friction to puck speed
@@ -35,15 +55,17 @@ class GameCore:
         self.puck_pos["y"] += self.puck_speed["y"]
 
         # Check for collisions with walls (top and bottom)
-        if (
-            self.puck_pos["y"] <= self.puck_radius
-            or self.puck_pos["y"] >= self.board_height - self.puck_radius
-        ):
-            self.puck_speed["y"] = -self.puck_speed["y"]
+        if self.puck_pos["y"] <= self.puck_radius:
+            self.puck_pos["y"] = self.puck_radius
+            self.puck_speed["y"] = abs(self.puck_speed["y"])  # Ensure it's moving downwards
+        elif self.puck_pos["y"] >= self.board_height - self.puck_radius:
+            self.puck_pos["y"] = self.board_height - self.puck_radius
+            self.puck_speed["y"] = -abs(self.puck_speed["y"])  # Ensure it's moving upwards
 
         # Check for collisions with paddles
-        self.check_paddle_collision(self.paddle1_pos, self.paddle1_velocity)
-        self.check_paddle_collision(self.paddle2_pos, self.paddle2_velocity)
+        if self.check_paddle_collision(self.paddle1_pos, self.paddle1_velocity) or self.check_paddle_collision(
+                self.paddle2_pos, self.paddle2_velocity):
+            self.last_hit_time = pygame.time.get_ticks()  # Reset the timer on puck hit
 
         # Check for goal
         if self.puck_pos["x"] <= self.puck_radius:
@@ -51,26 +73,28 @@ class GameCore:
                 self.goals["right"] += 1
                 self.reset_puck("left")
             else:
-                self.puck_speed["x"] = -self.puck_speed["x"]
+                self.puck_pos["x"] = self.puck_radius
+                self.puck_speed["x"] = abs(self.puck_speed["x"])  # Ensure it's moving right
 
         elif self.puck_pos["x"] >= self.board_width - self.puck_radius:
             if self.is_in_goal_area(self.puck_pos["y"]):
                 self.goals["left"] += 1
                 self.reset_puck("right")
             else:
-                self.puck_speed["x"] = -self.puck_speed["x"]
+                self.puck_pos["x"] = self.board_width - self.puck_radius
+                self.puck_speed["x"] = -abs(self.puck_speed["x"])  # Ensure it's moving lef
 
         # Check for game over
         if (
-            self.goals["left"] >= self.max_goals
-            or self.goals["right"] >= self.max_goals
+                self.goals["left"] >= self.max_goals
+                or self.goals["right"] >= self.max_goals
         ):
             self.running = False
 
     def check_paddle_collision(self, paddle_pos, paddle_velocity):
         dx = self.puck_pos["x"] - paddle_pos["x"]
         dy = self.puck_pos["y"] - paddle_pos["y"]
-        distance = (dx**2 + dy**2) ** 0.5
+        distance = (dx ** 2 + dy ** 2) ** 0.5
 
         if distance <= self.paddle_radius + self.puck_radius:
             angle = atan2(dy, dx)
@@ -78,6 +102,8 @@ class GameCore:
             # Influence puck speed with paddle velocity
             self.puck_speed["x"] = speed * cos(angle) + paddle_velocity["x"]
             self.puck_speed["y"] = speed * sin(angle) + paddle_velocity["y"]
+            return True
+        return False
 
     def is_in_goal_area(self, y_pos):
         goal_top = self.board_height // 2 - self.goal_size // 2
@@ -125,3 +151,107 @@ class GameCore:
         self.paddle2_velocity = {"x": 0, "y": 0}
         self.puck_pos = {"x": self.board_width // 2, "y": self.board_height // 2}
         self.set_random_puck_speed()
+        self.last_hit_time = pygame.time.get_ticks()
+
+    def get_state(self):
+        angle = degrees(atan2(self.puck_speed["y"], self.puck_speed["x"]))
+        state = [
+            self.paddle1_pos["x"], self.paddle1_pos["y"],
+            self.paddle1_velocity["x"], self.paddle1_velocity["y"],
+            self.paddle2_pos["x"], self.paddle2_pos["y"],
+            self.paddle2_velocity["x"], self.paddle2_velocity["y"],
+            self.puck_pos["x"], self.puck_pos["y"],
+            self.puck_speed["x"], self.puck_speed["y"],
+            angle
+        ]
+        return np.array(state, dtype=np.float32)
+
+    def take_action(self, action, player):
+        x_move, y_move = self.action_map[action]
+        if player == 1:
+            self.move_paddle(1, self.paddle1_pos["x"] + x_move, self.paddle1_pos["y"] + y_move)
+        else:
+            self.move_paddle(2, self.paddle2_pos["x"] + x_move, self.paddle2_pos["y"] + y_move)
+
+    def get_reward(self, player):
+        reward = 0.0
+
+        if player == 1:  # Left bot
+            # Left bot scores a goal
+            if self.puck_pos["x"] >= self.board_width - self.puck_radius:
+                if self.is_in_goal_area(self.puck_pos["y"]):
+                    reward += 1.0
+
+            # Right bot scores a goal
+            elif self.puck_pos["x"] <= self.puck_radius:
+                if self.is_in_goal_area(self.puck_pos["y"]):
+                    reward -= 1.0
+
+            # When puck in left bot's half court, decrease distance to puck
+            if self.puck_pos["x"] < self.board_width / 2:
+                distance = np.sqrt(
+                    (self.paddle1_pos["x"] - self.puck_pos["x"]) ** 2 + (
+                            self.paddle1_pos["y"] - self.puck_pos["y"]) ** 2)
+                reward += 0.05 * (1 - distance / self.board_width)
+
+            # Puck is behind the left bot
+            if self.puck_pos["x"] < self.paddle1_pos["x"]:
+                reward -= 0.1
+
+            # Detect a collision between left bot and puck
+            distance_paddle_puck = np.sqrt(
+                (self.paddle1_pos["x"] - self.puck_pos["x"]) ** 2 + (self.paddle1_pos["y"] - self.puck_pos["y"]) ** 2)
+            if distance_paddle_puck <= self.paddle_radius + self.puck_radius:
+                reward += 0.1
+
+            # Discourage approaching the puck slowly
+            puck_speed = np.sqrt(self.puck_speed["x"] ** 2 + self.puck_speed["y"] ** 2)
+            max_speed = 5.0  # Assuming 5.0 is the max speed
+            reward -= 0.1 * (max_speed - puck_speed)
+
+            # Punish puck standing still
+            if puck_speed < 0.1:
+                reward -= 0.025
+
+        elif player == 2:  # Right bot
+            # Right bot scores a goal
+            if self.puck_pos["x"] <= self.puck_radius:
+                if self.is_in_goal_area(self.puck_pos["y"]):
+                    reward += 1.0
+
+            # Left bot scores a goal
+            elif self.puck_pos["x"] >= self.board_width - self.puck_radius:
+                if self.is_in_goal_area(self.puck_pos["y"]):
+                    reward -= 1.0
+
+            # When puck in right bot's half court, decrease distance to puck
+            if self.puck_pos["x"] > self.board_width / 2:
+                distance = np.sqrt(
+                    (self.paddle2_pos["x"] - self.puck_pos["x"]) ** 2 + (
+                            self.paddle2_pos["y"] - self.puck_pos["y"]) ** 2)
+                reward += 0.05 * (1 - distance / self.board_width)
+
+            # Puck is behind the right bot
+            if self.puck_pos["x"] > self.paddle2_pos["x"]:
+                reward -= 0.1
+
+            # Detect a collision between right bot and puck
+            distance_paddle_puck = np.sqrt(
+                (self.paddle2_pos["x"] - self.puck_pos["x"]) ** 2 + (self.paddle2_pos["y"] - self.puck_pos["y"]) ** 2)
+            if distance_paddle_puck <= self.paddle_radius + self.puck_radius:
+                reward += 0.1
+
+            # Discourage approaching the puck slowly
+            puck_speed = np.sqrt(self.puck_speed["x"] ** 2 + self.puck_speed["y"] ** 2)
+            max_speed = 5.0  # Assuming 5.0 is the max speed
+            reward -= 0.1 * (max_speed - puck_speed)
+
+            # Punish puck standing still
+            if puck_speed < 0.1:
+                reward -= 0.025
+
+        return reward
+
+
+
+

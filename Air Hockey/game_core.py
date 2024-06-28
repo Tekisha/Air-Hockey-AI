@@ -213,7 +213,6 @@ class GameCore:
             if self.puck_pos["x"] >= self.board_width - self.puck_radius:
                 if self.is_in_goal_area(self.puck_pos["y"]):
                     reward += self.goal_reward
-                    self.reset_puck("right")
                     self.print_message("GOAAAAAAL by Left Bot")
 
             # Right bot scores a goal
@@ -271,6 +270,7 @@ class GameCore:
             elif self.puck_pos["x"] >= self.board_width - self.puck_radius:
                 if self.is_in_goal_area(self.puck_pos["y"]):
                     reward -= self.goal_reward
+                    self.reset_puck("right")
                     self.print_message("Left Bot scored a goal")
 
             # When puck in right bot's half court, decrease distance to puck

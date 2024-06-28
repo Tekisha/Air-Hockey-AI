@@ -17,7 +17,7 @@ class GameCore:
         self.board_height = board_height
         self.paddle_radius = 20
         self.puck_radius = 10
-        self.max_speed = 10
+        self.max_speed = 7
         self.paddle1_pos = {"x": 50, "y": board_height // 2}
         self.paddle2_pos = {"x": board_width - 50, "y": board_height // 2}
         self.paddle1_velocity = {"x": 0, "y": 0}
@@ -40,7 +40,7 @@ class GameCore:
         self.puck_distance_reward = 0.05
         self.puck_is_behind = 0.06
         self.collision_with_puck = 0.7
-        self.position_on_puck_path = 0.05
+        self.position_on_puck_path = 0.02
         self.puck_standing_still = 0.05
 
     def update_game_state(self):

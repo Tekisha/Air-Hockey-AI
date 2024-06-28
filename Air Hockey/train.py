@@ -6,7 +6,7 @@ from game_core import GameCore
 from gui_core import GUICore
 
 
-def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes=1000, save_interval=100):
+def train_maddpg(state_dim, n_actions, load_model=True, show_gui_after_episodes=0, save_interval=100):
     # Initialize the environment
     pygame.init()
     board_image = pygame.image.load("assets/board.png")
@@ -19,8 +19,12 @@ def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes
 
     # Define hyperparameters
     n_episodes = 5000
+    max_episode_duration = 40 * 1000  # 40 seconds in milliseconds
 
     agent = Agent_MADDPG(n_actions, state_dim)
+
+    if load_model:
+        agent.load_agents()
 
     steps_done = 0
     clock = pygame.time.Clock()
@@ -33,6 +37,7 @@ def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes
             state_2 = game.get_state(2)
             all_states = np.stack([state_1, state_2], axis=0)
             done = False
+            episode_start_time = pygame.time.get_ticks()
 
             while not done:
                 for event in pygame.event.get():
@@ -57,35 +62,26 @@ def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes
                 reward1 = game.get_reward(1)
                 reward2 = game.get_reward(2)
 
-                # if reward1 > 0.9 or reward2 > 0.9:
-                #     print("+++++++++++++++++")
-                #     print("Episode:" + str(episode) + " Steps:" + str(steps_done))
-                #     print("Reward1:" + str(reward1))
-                #     print("Reward2:" + str(reward2))
-
                 current_time = pygame.time.get_ticks()
                 if current_time - game.last_hit_time > game.max_no_hit_duration:
-                    print(f"Skipping episode due to no puck hit in {game.max_no_hit_duration/1000} seconds.")
-                    reward1 = -0.6 # Penalty for inactivity
+                    print(f"Skipping episode due to no puck hit in {game.max_no_hit_duration / 1000} seconds.")
+                    reward1 = -0.6  # Penalty for inactivity
                     reward2 = -0.6  # Penalty for inactivity
+                    done = True
+                elif current_time - episode_start_time > max_episode_duration:
+                    print("Ending episode due to max duration reached.")
                     done = True
                 else:
                     done = not game.running
 
-                agent.step(all_states, action, [
-                           reward1, reward2], all_next_state, [done, done])
+                agent.step(all_states, action, [reward1, reward2], all_next_state, [done, done])
                 all_states = all_next_state
 
                 if episode >= show_gui_after_episodes:
                     gui.update(game.paddle1_pos, game.paddle2_pos, game.puck_pos, game.goals)
                     pygame.display.flip()
 
-                #gui.update(game.paddle1_pos, game.paddle2_pos,
-                           #game.puck_pos, game.goals)
-                # game.draw_q_values(screen, target_net1,
-                #                    target_net2, state, game.action_map)
-                #pygame.display.flip()
-                clock.tick(500)  # Limit to 240 frames per second
+                clock.tick(240)  # Limit to 240 frames per second
 
                 if done:
                     break

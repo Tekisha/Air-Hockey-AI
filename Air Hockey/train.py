@@ -37,7 +37,7 @@ def train_maddpg(state_dim, n_actions, load_model=True, show_gui_after_episodes=
             state_2 = game.get_state(2)
             all_states = np.stack([state_1, state_2], axis=0)
             done = False
-            episode_start_time = pygame.time.get_ticks()
+            # episode_start_time = pygame.time.get_ticks()
 
             while not done:
                 for event in pygame.event.get():
@@ -74,9 +74,9 @@ def train_maddpg(state_dim, n_actions, load_model=True, show_gui_after_episodes=
                     reward1 = -0.6  # Penalty for inactivity
                     reward2 = -0.6  # Penalty for inactivity
                     done = True
-                elif current_time - episode_start_time > max_episode_duration:
-                    print("Ending episode due to max duration reached.")
-                    done = True
+                # elif current_time - episode_start_time > max_episode_duration:
+                #     print("Ending episode due to max duration reached.")
+                #     done = True
                 else:
                     done = not game.running
 

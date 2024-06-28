@@ -198,5 +198,3 @@ class Agent_MADDPG():
             critic_path = f"checkpoint_critic_agent_{i}.pth"
             agent.actor_local.load_state_dict(torch.load(actor_path))
             agent.critic_local.load_state_dict(torch.load(critic_path))
-            agent.actor_target.load_state_dict(torch.load(actor_path))
-            agent.critic_target.load_state_dict(torch.load(critic_path))

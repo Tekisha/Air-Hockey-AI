@@ -115,11 +115,11 @@ def train_dqn_bot_vs_bot(state_dim, n_actions, load_model=False):
     n_episodes = 5000
     gamma = 0.99
     epsilon_min = 0.01
-    epsilon = 1
+    epsilon = 0.9
     epsilon_decay = 0.995
-    min_episodes = 5
-    update_step = 5
-    update_repeats = 30
+    min_episodes = 6
+    update_step = 3
+    update_repeats = 50
     memory_capacity = 50000
     batch_size = 128
     lr_step = 100
@@ -218,9 +218,11 @@ def train_dqn_bot_vs_bot(state_dim, n_actions, load_model=False):
             memory2.push(state, action2, reward2, next_state, done)
 
             gui.update(game.paddle1_pos, game.paddle2_pos, game.puck_pos, game.goals)
-            game.draw_q_values(screen, target_net1, target_net2, state, game.action_map)
+            game.draw_q_values(
+                screen, target_net1, target_net2, next_state, game.action_map
+            )
             pygame.display.flip()
-            clock.tick(100)  # Limit to 240 frames per second
+            clock.tick(500)  # Limit to 240 frames per second
 
             if done:
                 break

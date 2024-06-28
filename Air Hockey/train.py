@@ -22,12 +22,12 @@ def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes
 
     agent = Agent_MADDPG(n_actions, state_dim)
 
-    steps_done = 0
     clock = pygame.time.Clock()
 
     try:
         for episode in range(n_episodes):
             print("Episode:" + str(episode))
+            steps_done = 0
             game.reset_game()
             state_1 = game.get_state(1)
             state_2 = game.get_state(2)
@@ -80,6 +80,8 @@ def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes
                     gui.update(game.paddle1_pos, game.paddle2_pos, game.puck_pos, game.goals)
                     pygame.display.flip()
 
+                if steps_done >= 5000:
+                    done = True
                 #gui.update(game.paddle1_pos, game.paddle2_pos,
                            #game.puck_pos, game.goals)
                 # game.draw_q_values(screen, target_net1,

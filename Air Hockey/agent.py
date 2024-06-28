@@ -191,3 +191,12 @@ class Agent_MADDPG():
                        f"checkpoint_actor_agent_{i}.pth")
             torch.save(agent.critic_local.state_dict(),
                        f"checkpoint_critic_agent_{i}.pth")
+
+    def load_agents(self):
+        for i, agent in enumerate(self.agents):
+            actor_path = f"checkpoint_actor_agent_{i}.pth"
+            critic_path = f"checkpoint_critic_agent_{i}.pth"
+            agent.actor_local.load_state_dict(torch.load(actor_path))
+            agent.critic_local.load_state_dict(torch.load(critic_path))
+            agent.actor_target.load_state_dict(torch.load(actor_path))
+            agent.critic_target.load_state_dict(torch.load(critic_path))

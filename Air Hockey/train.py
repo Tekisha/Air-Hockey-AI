@@ -6,7 +6,7 @@ from game_core import GameCore
 from gui_core import GUICore
 
 
-def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes=500, save_interval=100):
+def train_maddpg(state_dim, n_actions, load_model=True, show_gui_after_episodes=0, save_interval=100):
     # Initialize the environment
     pygame.init()
     board_image = pygame.image.load("assets/board.png")
@@ -84,7 +84,7 @@ def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes
                 all_states = all_next_state
 
                 if episode >= show_gui_after_episodes:
-                    gui.update(game.paddle1_pos, game.paddle2_pos, game.puck_pos, game.goals)
+                    gui.update(game.paddle1_pos, game.paddle2_pos, game.puck_pos, game.goals, game.predicted_path)
                     pygame.display.flip()
 
                 if steps_done >= 5000:

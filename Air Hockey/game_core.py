@@ -60,6 +60,11 @@ class GameCore:
         self.move_closer_to_goal_reward = 0.1
         self.directing_towards_opponent_goal_reward = 0.25
         self.directing_towards_own_goal_punishment = 0.4
+        self.half_penalty = 0.5
+
+        self.last_half = None
+        self.half_entry_time = pygame.time.get_ticks()
+        self.max_half_duration = 8000
 
     def update_game_state(self):
         # Calculate acceleration
@@ -128,6 +133,18 @@ class GameCore:
                 self.puck_speed["x"] = -abs(
                     self.puck_speed["x"]
                 )  # Ensure it's moving lef
+
+        # Check puck's position relative to the center of the board
+        current_time = pygame.time.get_ticks()
+        if self.puck_pos["x"] < self.board_width / 2:
+            current_half = "left"
+        else:
+            current_half = "right"
+
+        # If the puck has changed halves, reset the timer
+        if current_half != self.last_half:
+            self.last_half = current_half
+            self.half_entry_time = current_time
 
         # Check for game over
         if (
@@ -264,6 +281,19 @@ class GameCore:
 
         # Update previous puck position
         self.previous_puck_pos = self.puck_pos.copy()
+
+        current_time = pygame.time.get_ticks()
+        time_in_half = current_time - self.half_entry_time
+
+        if time_in_half > self.max_half_duration:
+            if self.last_half == "left":
+                if player == 1:  # Left bot
+                    reward -= self.half_penalty
+                    self.print_message("Penalty: Left Bot has kept the puck in its half for too long")
+            elif self.last_half == "right":
+                if player == 2:  # Right bot
+                    reward -= self.half_penalty
+                    self.print_message("Penalty: Right Bot has kept the puck in its half for too long")
 
         if player == 1:  # Left bot
             # Left bot scores a goal

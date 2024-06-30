@@ -7,7 +7,7 @@ def main():
 
     state_dim = 11
     n_actions = 2
-    train_maddpg(state_dim, n_actions, load_model=True)
+    train_maddpg(state_dim, n_actions)
     # if len(sys.argv) < 2:
     #     print("Usage: python main.py [train|test_player_vs_bot|test_bot_vs_bot]")
     #     return

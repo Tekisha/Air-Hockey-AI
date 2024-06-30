@@ -6,7 +6,7 @@ from game_core import GameCore
 from gui_core import GUICore
 
 
-def train_maddpg(state_dim, n_actions, load_model=True, show_gui_after_episodes=0, save_interval=100):
+def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes=0, save_interval=100):
     # Initialize the environment
     pygame.init()
     board_image = pygame.image.load("assets/board.png")

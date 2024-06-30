@@ -230,6 +230,7 @@ class GameCore:
         self.paddle2_previous_velocity = self.paddle2_velocity.copy()
         self.reset_puck(choice(["left", "right"]))
         self.last_hit_time = pygame.time.get_ticks()
+        self.half_entry_time = pygame.time.get_ticks()
         self.consecutive_hits = {"player1": 0, "player2": 0}
 
     def get_state(self, player):

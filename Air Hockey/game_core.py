@@ -7,10 +7,10 @@ import pygame
 
 class GameCore:
     def set_random_puck_speed(self):
-        speed = randrange(4, 6)
+        speed = randrange(3, 5)
         angle = randrange(0, 360)
-        self.puck_speed["x"] = speed * cos(radians(angle))
-        self.puck_speed["y"] = speed * sin(radians(angle))
+        self.puck_speed["x"] = speed * cos(radians(angle)) + 1
+        self.puck_speed["y"] = speed * sin(radians(angle)) + 1
 
     def __init__(self, gui, board_width, board_height):
         self.gui = gui

@@ -27,9 +27,11 @@ def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes
         agent.load_agents()
 
     clock = pygame.time.Clock()
+    start_epoch = agent.epoch
 
     try:
-        for episode in range(n_episodes):
+        for episode in range(start_epoch, n_episodes):
+            agent.epoch = episode
             print("Episode:" + str(episode))
             steps_done = 0
             game.reset_game()
@@ -70,7 +72,8 @@ def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes
 
                 current_time = pygame.time.get_ticks()
                 if current_time - game.last_hit_time > game.max_no_hit_duration:
-                    print(f"Skipping episode due to no puck hit in {game.max_no_hit_duration / 1000} seconds.")
+                    print(
+                        f"Skipping episode due to no puck hit in {game.max_no_hit_duration / 1000} seconds.")
                     reward1 = -0.6  # Penalty for inactivity
                     reward2 = -0.6  # Penalty for inactivity
                     done = True
@@ -80,20 +83,22 @@ def train_maddpg(state_dim, n_actions, load_model=False, show_gui_after_episodes
                 else:
                     done = not game.running
 
-                agent.step(all_states, action, [reward1, reward2], all_next_state, [done, done])
+                agent.step(all_states, action, [
+                           reward1, reward2], all_next_state, [done, done])
                 all_states = all_next_state
 
                 if episode >= show_gui_after_episodes:
-                    gui.update(game.paddle1_pos, game.paddle2_pos, game.puck_pos, game.goals, game.predicted_path)
+                    gui.update(game.paddle1_pos, game.paddle2_pos,
+                               game.puck_pos, game.goals, game.predicted_path)
                     pygame.display.flip()
 
                 if steps_done >= 5000:
                     done = True
-                #gui.update(game.paddle1_pos, game.paddle2_pos,
-                           #game.puck_pos, game.goals)
+                # gui.update(game.paddle1_pos, game.paddle2_pos,
+                    # game.puck_pos, game.goals)
                 # game.draw_q_values(screen, target_net1,
                 #                    target_net2, state, game.action_map)
-                #pygame.display.flip()
+                # pygame.display.flip()
                 clock.tick(500)  # Limit to 240 frames per second
 
                 if done:

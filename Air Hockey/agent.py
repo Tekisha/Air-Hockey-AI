@@ -125,6 +125,7 @@ class Agent_MADDPG():
         self.t_step = 0
         self.noise_on = True
         self.t_stop_noise = t_stop_noise
+        self.epoch = 0
 
         models = [model.Actor_Critic_Models(
             n_agents, state_size, action_size) for _ in range(n_agents)]
@@ -187,24 +188,43 @@ class Agent_MADDPG():
 
     def save_agents(self):
         for i, agent in enumerate(self.agents):
-            torch.save(agent.actor_local.state_dict(), f"checkpoint_actor_agent_{i}.pth")
-            torch.save(agent.critic_local.state_dict(), f"checkpoint_critic_agent_{i}.pth")
-            torch.save(agent.actor_optimizer.state_dict(), f"checkpoint_actor_optimizer_agent_{i}.pth")
-            torch.save(agent.critic_optimizer.state_dict(), f"checkpoint_critic_optimizer_agent_{i}.pth")
+            torch.save({
+                'epoch': self.epoch,
+                f'model{i}_actor_local': agent.actor_local.state_dict(),
+                f'model{i}_actor_target': agent.actor_target.state_dict(),
+                f'model{i}_actor_optim': agent.actor_optimizer.state_dict(),
+                f'model{i}_critic_local': agent.critic_local.state_dict(),
+                f'model{i}_critic_target': agent.critic_target.state_dict(),
+                f'model{i}_critic_optim': agent.critic_optimizer.state_dict()
+            }, f'checkpoint_agent_{i}.pth')
+
             print(f"Saved checkpoints for agent {i}")
 
     def load_agents(self):
         for i, agent in enumerate(self.agents):
-            actor_path = f"checkpoint_actor_agent_{i}.pth"
-            critic_path = f"checkpoint_critic_agent_{i}.pth"
-            actor_optimizer_path = f"checkpoint_actor_optimizer_agent_{i}.pth"
-            critic_optimizer_path = f"checkpoint_critic_optimizer_agent_{i}.pth"
+            path = f"checkpoint_agent_{i}.pth"
+            checkpoint = torch.load(path, map_location=device)
 
-            agent.actor_local.load_state_dict(torch.load(actor_path, map_location=device))
-            agent.critic_local.load_state_dict(torch.load(critic_path, map_location=device))
+            agent.actor_local.load_state_dict(
+                checkpoint[f'model{i}_actor_local'])
+            agent.actor_target.load_state_dict(
+                checkpoint[f'model{i}_actor_target'])
+            agent.actor_optimizer.load_state_dict(
+                checkpoint[f'model{i}_actor_optim'])
 
-            agent.actor_optimizer.load_state_dict(torch.load(actor_optimizer_path, map_location=device))
-            agent.critic_optimizer.load_state_dict(torch.load(critic_optimizer_path, map_location=device))
+            self.epoch = checkpoint['epoch']
+
+            agent.critic_local.load_state_dict(
+                checkpoint[f'model{i}_critic_local'])
+            agent.critic_target.load_state_dict(
+                checkpoint[f'model{i}_critic_target'])
+            agent.critic_optimizer.load_state_dict(
+                checkpoint[f'model{i}_critic_optim'])
+
+            agent.actor_local.train()
+            agent.actor_target.train()
+
+            agent.critic_local.train()
+            agent.critic_target.train()
 
             print(f"Loaded checkpoints for agent {i} on device {device}")
-

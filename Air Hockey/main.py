@@ -1,8 +1,3 @@
-import torch
-import numpy as np
-import pygame
-import sklearn
-
 from train import train_maddpg
 
 
@@ -12,11 +7,11 @@ def main():
 
     state_dim = 9
     n_actions = 2
-    train_maddpg(state_dim,n_actions)
+    train_maddpg(state_dim, n_actions, load_model=True)
     # if len(sys.argv) < 2:
     #     print("Usage: python main.py [train|test_player_vs_bot|test_bot_vs_bot]")
     #     return
-    #print(np.ndarray)
+    # print(np.ndarray)
     # # mode = sys.argv[1]
     # mode = ""
     # if mode == "train":
@@ -39,4 +34,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

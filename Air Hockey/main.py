@@ -5,7 +5,7 @@ from train import train_maddpg
 def main():
     global state_dim, n_actions
 
-    state_dim = 9
+    state_dim = 11
     n_actions = 2
     train_maddpg(state_dim, n_actions, load_model=True)
     # if len(sys.argv) < 2:

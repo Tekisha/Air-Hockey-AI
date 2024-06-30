@@ -20,10 +20,16 @@ class GameCore:
         self.paddle_radius = 20
         self.puck_radius = 10
         self.max_speed = 7
+
         self.paddle1_pos = {"x": 50, "y": board_height // 2}
         self.paddle2_pos = {"x": board_width - 50, "y": board_height // 2}
         self.paddle1_velocity = {"x": 0, "y": 0}
+        self.paddle1_acceleration = {"x": 0, "y": 0}
         self.paddle2_velocity = {"x": 0, "y": 0}
+        self.paddle2_acceleration = {"x": 0, "y": 0}
+        self.paddle1_previous_velocity = {"x": 0, "y": 0}
+        self.paddle2_prevoius_velocity = {"x": 0, "y": 0}
+
         self.puck_pos = {"x": board_width // 2, "y": board_height // 2}
         self.puck_speed = {"x": 0.0, "y": 0.0}
         self.previous_puck_speed = self.puck_speed.copy()
@@ -43,7 +49,7 @@ class GameCore:
         self.last_player_hit = None
         self.consecutive_hits = {"player1": 0, "player2": 0}
         self.max_consecutive_hits = 30
-        self.predicted_path=None
+        self.predicted_path = None
 
         self.goal_reward = 1.0
         self.puck_distance_reward = 0.05
@@ -57,8 +63,20 @@ class GameCore:
 
     def update_game_state(self):
         # Calculate acceleration
-        self.puck_acceleration["x"] = self.puck_speed["x"] - self.previous_puck_speed["x"]
-        self.puck_acceleration["y"] = self.puck_speed["y"] - self.previous_puck_speed["y"]
+        self.puck_acceleration["x"] = self.puck_speed["x"] - \
+            self.previous_puck_speed["x"]
+        self.puck_acceleration["y"] = self.puck_speed["y"] - \
+            self.previous_puck_speed["y"]
+
+        self.paddle1_acceleration['x'] = self.paddle1_velocity["x"] - \
+            self.paddle1_previous_velocity["x"]
+        self.paddle1_acceleration['y'] = self.paddle1_velocity["y"] - \
+            self.paddle1_previous_velocity["y"]
+
+        self.paddle2_acceleration['x'] = self.paddle2_velocity["x"] - \
+            self.paddle2_prevoius_velocity["x"]
+        self.paddle2_acceleration['y'] = self.paddle2_velocity["y"] - \
+            self.paddle2_prevoius_velocity["y"]
 
         # Apply friction to puck speed
         self.puck_speed["x"] *= self.friction
@@ -69,6 +87,8 @@ class GameCore:
 
         # Save current puck speed for the next frame's acceleration calculation
         self.previous_puck_speed = self.puck_speed.copy()
+        self.paddle1_previous_velocity = self.paddle1_velocity.copy()
+        self.paddle2_prevoius_velocity = self.paddle2_velocity.copy()
 
         # Check for collisions with walls (top and bottom)
         if self.puck_pos["y"] <= self.puck_radius:
@@ -92,7 +112,7 @@ class GameCore:
         if self.puck_pos["x"] <= self.puck_radius:
             if self.is_in_goal_area(self.puck_pos["y"]):
                 self.goals["right"] += 1
-                #self.reset_puck("left")
+                # self.reset_puck("left")
             else:
                 self.puck_pos["x"] = self.puck_radius
                 self.puck_speed["x"] = abs(
@@ -102,7 +122,7 @@ class GameCore:
         elif self.puck_pos["x"] >= self.board_width - self.puck_radius:
             if self.is_in_goal_area(self.puck_pos["y"]):
                 self.goals["left"] += 1
-                #self.reset_puck("right")
+                # self.reset_puck("right")
             else:
                 self.puck_pos["x"] = self.board_width - self.puck_radius
                 self.puck_speed["x"] = -abs(
@@ -143,7 +163,7 @@ class GameCore:
 
     def reset_puck(self, side):
         self.puck_pos = {"x": self.board_width //
-                              2, "y": self.board_height // 2}
+                         2, "y": self.board_height // 2}
         self.set_random_puck_speed()
         if side == "left":
             self.puck_speed["x"] = abs(self.puck_speed["x"])
@@ -186,9 +206,11 @@ class GameCore:
     def reset_game(self):
         self.paddle1_pos = {"x": 50, "y": self.board_height // 2}
         self.paddle2_pos = {"x": self.board_width -
-                                 50, "y": self.board_height // 2}
+                            50, "y": self.board_height // 2}
         self.paddle1_velocity = {"x": 0, "y": 0}
         self.paddle2_velocity = {"x": 0, "y": 0}
+        self.paddle1_previous_velocity = self.paddle1_velocity.copy()
+        self.paddle2_previous_velocity = self.paddle2_velocity.copy()
         self.reset_puck(choice(["left", "right"]))
         self.last_hit_time = pygame.time.get_ticks()
         self.consecutive_hits = {"player1": 0, "player2": 0}
@@ -198,9 +220,13 @@ class GameCore:
         if player == 1:
             paddlex = self.paddle1_pos["x"]
             paddley = self.paddle1_pos["y"]
+            paddlex_acc = self.paddle1_acceleration["x"]
+            paddley_acc = self.paddle1_acceleration["y"]
         else:
             paddlex = self.paddle2_pos["x"]
             paddley = self.paddle2_pos["y"]
+            paddlex_acc = self.paddle2_acceleration["x"]
+            paddley_acc = self.paddle2_acceleration["y"]
 
         state = [
             paddlex,
@@ -212,6 +238,8 @@ class GameCore:
             self.puck_acceleration["x"],
             self.puck_acceleration["y"],
             angle,
+            paddlex_acc,
+            paddley_acc
         ]
         return np.array(state, dtype=np.float32)
 
@@ -222,12 +250,12 @@ class GameCore:
         if player == 1:
             self.move_paddle(
                 1, self.paddle1_pos["x"] +
-                   x_move, self.paddle1_pos["y"] + y_move
+                x_move, self.paddle1_pos["y"] + y_move
             )
         else:
             self.move_paddle(
                 2, self.paddle2_pos["x"] +
-                   x_move, self.paddle2_pos["y"] + y_move
+                x_move, self.paddle2_pos["y"] + y_move
             )
 
     def get_reward(self, player):
@@ -246,7 +274,8 @@ class GameCore:
                         self.print_message("GOAAAAAAL by Left Bot")
                     elif self.last_player_hit == 2:
                         reward += self.goal_reward / 2
-                        self.print_message("GOAAAAAAL by Left Bot (own goal by Right Bot)")
+                        self.print_message(
+                            "GOAAAAAAL by Left Bot (own goal by Right Bot)")
 
             # Right bot scores a goal
             elif self.puck_pos["x"] <= self.puck_radius:
@@ -260,7 +289,8 @@ class GameCore:
                     (self.paddle1_pos["x"] - self.puck_pos["x"]) ** 2
                     + (self.paddle1_pos["y"] - self.puck_pos["y"]) ** 2
                 )
-                reward += self.puck_distance_reward * (1 - distance / self.board_width)
+                reward += self.puck_distance_reward * \
+                    (1 - distance / self.board_width)
 
             # Puck is behind the left bot
             if self.puck_pos["x"] < self.paddle1_pos["x"]:
@@ -314,7 +344,8 @@ class GameCore:
                         self.print_message("GOAAAAAAL by Right Bot")
                     elif self.last_player_hit == 1:
                         reward += self.goal_reward / 2
-                        self.print_message("GOAAAAAAL by Right Bot (own goal by Left Bot)")
+                        self.print_message(
+                            "GOAAAAAAL by Right Bot (own goal by Left Bot)")
                     self.reset_game()
 
             # Left bot scores a goal
@@ -330,7 +361,8 @@ class GameCore:
                     (self.paddle2_pos["x"] - self.puck_pos["x"]) ** 2
                     + (self.paddle2_pos["y"] - self.puck_pos["y"]) ** 2
                 )
-                reward += self.puck_distance_reward * (1 - distance / (self.board_width / 2))
+                reward += self.puck_distance_reward * \
+                    (1 - distance / (self.board_width / 2))
 
             # Puck is behind the right bot
             if self.puck_pos["x"] > self.paddle2_pos["x"]:
@@ -376,7 +408,7 @@ class GameCore:
                 self.print_message("Puck is standing still")
 
         if self.consecutive_hits["player1"] >= self.max_consecutive_hits or self.consecutive_hits[
-            "player2"] >= self.max_consecutive_hits:
+                "player2"] >= self.max_consecutive_hits:
             self.print_message(
                 "Resetting game due to " + str(self.max_consecutive_hits) + " consecutive hits by one player.")
             self.reset_game()
@@ -433,4 +465,3 @@ class GameCore:
             screen.blit(q_value_text1, (10, 10 + action * 25))
             screen.blit(q_value_text2, (10, 10 +
                                         len(action_map) * 25 + action * 25))
-

@@ -130,6 +130,8 @@ venv.bak/
 .idea
 new_env
 
+*.pth
+
 # Spyder project settings
 .spyderproject
 .spyproject

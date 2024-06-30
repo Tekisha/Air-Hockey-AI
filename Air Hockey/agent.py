@@ -1,4 +1,6 @@
+from os.path import isfile
 import random
+import os
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -173,12 +175,12 @@ class Agent_MADDPG():
         for i, agent in enumerate(self.agents):
             states, _, _, next_states, _ = experiences[i]
             agent_id = torch.tensor([i]).to(device)
-            state = states.reshape(-1, 2, 9).index_select(1,
-                                                          agent_id).squeeze(1)
+            state = states.reshape(-1, 2, 11).index_select(1,
+                                                           agent_id).squeeze(1)
             action = agent.actor_local(state)
             all_actions.append(action)
             next_state = next_states.reshape(-1, 2,
-                                             9).index_select(1, agent_id).squeeze(1)
+                                             11).index_select(1, agent_id).squeeze(1)
             next_action = agent.actor_target(next_state)
             all_next_actions.append(next_action)
 
@@ -203,6 +205,8 @@ class Agent_MADDPG():
     def load_agents(self):
         for i, agent in enumerate(self.agents):
             path = f"checkpoint_agent_{i}.pth"
+            if not os.path.isfile(f"./{path}"):
+                break
             checkpoint = torch.load(path, map_location=device)
 
             agent.actor_local.load_state_dict(

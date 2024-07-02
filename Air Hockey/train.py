@@ -18,7 +18,7 @@ def train_maddpg(state_dim, n_actions, load_model=True, show_gui_after_episodes=
     game = GameCore(gui, board_width, board_height)
 
     # Define hyperparameters
-    n_episodes = 5000
+    n_episodes = 15000
     max_episode_duration = 30 * 1000  # 40 seconds in milliseconds
 
     agent = Agent_MADDPG(n_actions, state_dim)

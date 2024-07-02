@@ -46,14 +46,14 @@ class GameCore:
         self.max_paddle_speed = 7.07
         # Timer for detecting no puck hit
         self.last_hit_time = pygame.time.get_ticks()
-        self.max_no_hit_duration = 10000  # 20 seconds
+        self.max_no_hit_duration = 5000  # 20 seconds
         self.last_player_hit = None
         self.consecutive_hits = {"player1": 0, "player2": 0}
         self.max_consecutive_hits = 30
         self.predicted_path = None
 
         self.goal_reward = 1.2
-        self.puck_distance_reward = 0.05
+        self.puck_distance_reward = 0.2
         self.puck_is_behind = 0.1
         self.collision_with_puck = 0.7
         self.position_on_puck_path = 0.01
@@ -61,7 +61,8 @@ class GameCore:
         self.move_closer_to_goal_reward = 0.1
         self.directing_towards_opponent_goal_reward = 0.25
         self.directing_towards_own_goal_punishment = 0.4
-        self.half_penalty = 0.5
+        self.half_penalty = 0.0
+        self.approaching_speed_reward = 0.1
 
         self.last_half = None
         self.half_entry_time = pygame.time.get_ticks()
@@ -313,7 +314,7 @@ class GameCore:
         if distance_paddle_puck <= self.paddle_radius + self.puck_radius:
             # Collision detected, calculate approach speed reward
             paddle_speed = np.sqrt(paddle_velocity["x"] ** 2 + paddle_velocity["y"] ** 2)
-            approach_speed_reward = -0.1 * (self.max_paddle_speed - paddle_speed)
+            approach_speed_reward = -self.approaching_speed_reward * (self.max_paddle_speed - paddle_speed)
             reward += approach_speed_reward
             self.print_message(f"Approach speed reward: {approach_speed_reward}")
 

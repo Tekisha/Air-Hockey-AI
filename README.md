@@ -23,7 +23,19 @@ Air Hockey is a fast-paced game that requires quick reactions, precision, and st
 
 ## Setup Instructions
 
-Setup instructions will be provided once the initial implementation is available.
+### Prerequisites
+
+Ensure you have the following installed:
+- Python 3.x
+- `pip` (Python package installer)
+
+### Installation
+
+1. **Clone the repository**:
+   ```sh
+   git clone https://github.com/yourusername/air-hockey-ai.git
+   cd air-hockey-ai
+
 
 ## Contributing
 

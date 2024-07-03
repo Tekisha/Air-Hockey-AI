@@ -22,7 +22,7 @@ def main():
         test_model(state_dim, n_actions)
     else:
         print("Unknown mode:", mode)
-        print("Usage: python main.py [train|test_player_vs_bot|test_bot_vs_bot]")
+        print("Usage: python main.py [train|play]")
 
 
 if __name__ == "__main__":

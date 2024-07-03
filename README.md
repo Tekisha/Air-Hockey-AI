@@ -23,8 +23,33 @@ Air Hockey is a fast-paced game that requires quick reactions, precision, and st
 
 ## Setup Instructions
 
-Setup instructions will be provided once the initial implementation is available.
+### Prerequisites
 
+Ensure you have the following installed:
+- Python 3.x
+- `pip` (Python package installer)
+
+### Installation
+
+1. **Clone the repository**:
+   ```sh
+   git clone git@github.com:Tekisha/Air-Hockey-AI.git
+   cd Air-Hockey-AI
+2. **Create and activate a virtual environment**:
+   ```sh
+   python -m venv venv
+   source venv/bin/activate   # On Windows, use `venv\Scripts\activate`
+3. **Install required dependencies**:
+   ```sh
+   pip install -r requirements.txt
+### Running the Program
+You can run the program in two modes: `train` or `play`
+1. **Train the model**:
+   ```sh
+   python main.py train
+2. **Play with the model**:
+   ```sh
+   python main.py play #This will test the trained model.
 ## Contributing
 
 Contributions to the project are welcome! If you have any ideas for improvements or would like to report issues, please open a GitHub issue or submit a pull request.

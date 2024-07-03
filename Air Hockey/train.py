@@ -1,13 +1,14 @@
-import pygame
 import numpy as np
-
+import pygame
 from agent import Agent_MADDPG
 from game_core import GameCore
 from gui_core import GUICore
 
 
-def train_maddpg(state_dim, n_actions, load_model=True, show_gui_after_episodes=0, save_interval=100):
-    # Initialize the environment
+def train_maddpg(
+    state_dim, n_actions, load_model=True, show_gui_after_episodes=0, save_interval=100
+):
+    # Initialize tstate_dim, n_actionshe environment
     pygame.init()
     board_image = pygame.image.load("assets/board.png")
     board_width, board_height = board_image.get_rect().size
@@ -17,7 +18,7 @@ def train_maddpg(state_dim, n_actions, load_model=True, show_gui_after_episodes=
     gui = GUICore(screen, board_image, board_width, board_height)
     game = GameCore(gui, board_width, board_height)
 
-    # Define hyperparameters
+    # Define parameters
     n_episodes = 15000
     max_episode_duration = 30 * 1000  # 40 seconds in milliseconds
 
@@ -59,21 +60,17 @@ def train_maddpg(state_dim, n_actions, load_model=True, show_gui_after_episodes=
                 game.update_game_state()
 
                 all_next_state = np.stack(
-                    [game.get_state(1), game.get_state(2)], axis=0)
+                    [game.get_state(1), game.get_state(2)], axis=0
+                )
 
                 reward1 = game.get_reward(1)
                 reward2 = game.get_reward(2)
 
-                # if reward1 > 0.9 or reward2 > 0.9:
-                #     print("+++++++++++++++++")
-                #     print("Episode:" + str(episode) + " Steps:" + str(steps_done))
-                #     print("Reward1:" + str(reward1))
-                #     print("Reward2:" + str(reward2))
-
                 current_time = pygame.time.get_ticks()
                 if current_time - game.last_hit_time > game.max_no_hit_duration:
                     print(
-                        f"Skipping episode due to no puck hit in {game.max_no_hit_duration / 1000} seconds.")
+                        f"Skipping episode due to no puck hit in {game.max_no_hit_duration / 1000} seconds."
+                    )
                     reward1 = -0.6  # Penalty for inactivity
                     reward2 = -0.6  # Penalty for inactivity
                     done = True
@@ -83,22 +80,24 @@ def train_maddpg(state_dim, n_actions, load_model=True, show_gui_after_episodes=
                 else:
                     done = not game.running
 
-                agent.step(all_states, action, [
-                           reward1, reward2], all_next_state, [done, done])
+                agent.step(
+                    all_states, action, [reward1, reward2], all_next_state, [done, done]
+                )
                 all_states = all_next_state
 
                 if episode >= show_gui_after_episodes:
-                    gui.update(game.paddle1_pos, game.paddle2_pos,
-                               game.puck_pos, game.goals, game.predicted_path)
+                    gui.update(
+                        game.paddle1_pos,
+                        game.paddle2_pos,
+                        game.puck_pos,
+                        game.goals,
+                        game.predicted_path,
+                    )
                     pygame.display.flip()
 
                 if steps_done >= 5000:
                     done = True
-                # gui.update(game.paddle1_pos, game.paddle2_pos,
-                    # game.puck_pos, game.goals)
-                # game.draw_q_values(screen, target_net1,
-                #                    target_net2, state, game.action_map)
-                # pygame.display.flip()
+
                 clock.tick(500)  # Limit to 240 frames per second
 
                 if done:

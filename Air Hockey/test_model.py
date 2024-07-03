@@ -1,50 +1,55 @@
 import pygame
 import torch
+from agent import Agent_DDPG
 from game_core import GameCore
 from gui_core import GUICore
+from model import Actor_Critic_Models
 
 
-def test_model(policy_net, mode='player_vs_bot'):
+def test_model(state_dim, n_actions):
     pygame.init()
     board_image = pygame.image.load("assets/board.png")
     board_width, board_height = board_image.get_rect().size
     screen = pygame.display.set_mode((board_width, board_height))
-    pygame.display.set_caption("Air Hockey Test")
+    pygame.display.set_caption("Air Hockey Test - Player vs Bot")
 
     gui = GUICore(screen, board_image, board_width, board_height)
     game = GameCore(gui, board_width, board_height)
-    game.reset_game()
 
-    state = game.get_state()
-    state = torch.tensor([state], dtype=torch.float32)
+    model = Actor_Critic_Models(1, state_dim, n_actions)
+
+    agent = Agent_DDPG(0, model, n_actions)
+
+    agent.load_model()
+
+    clock = pygame.time.Clock()
 
     while game.running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 game.running = False
-            elif event.type == pygame.MOUSEMOTION and mode == 'player_vs_bot':
+            elif event.type == pygame.MOUSEMOTION:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 game.move_paddle(1, mouse_x, mouse_y)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_BACKSPACE:
+                    game.reset_game()
 
-        if mode == 'player_vs_bot':
-            with torch.no_grad():
-                action = policy_net(state).max(1)[1].view(1, 1).item()
-            game.take_action(action, 2)  # Player 2 is the bot
+        state = game.get_state(2)
+        action = agent.act(state)
+        action = (action[0][0].item(), action[0][1].item())
+        game.take_action(action, 2)
+        game.update_game_state()
+        game.check_for_goal()
 
-        elif mode == 'bot_vs_bot':
-            with torch.no_grad():
-                action1 = policy_net(state).max(1)[1].view(1, 1).item()
-                action2 = policy_net(state).max(1)[1].view(1, 1).item()
-            game.take_action(action1, 1)  # Player 1 is the bot
-            game.take_action(action2, 2)  # Player 2 is the bot
-
-        next_state = game.get_state()
-        next_state = torch.tensor([next_state], dtype=torch.float32)
-
-        state = next_state
-
-        gui.update(game.paddle1_pos, game.paddle2_pos, game.puck_pos, game.goals)
-        pygame.time.delay(30)
+        gui.update(
+            game.paddle1_pos,
+            game.paddle2_pos,
+            game.puck_pos,
+            game.goals,
+        )
+        pygame.display.flip()
+        clock.tick(500)
 
     pygame.quit()
     print("Game Over")

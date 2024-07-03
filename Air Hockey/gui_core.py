@@ -10,7 +10,7 @@ class GUICore:
         self.board_width = board_width
         self.board_height = board_height
 
-    def update(self, paddle1_pos, paddle2_pos, puck_pos, goals, predicted_path):
+    def update(self, paddle1_pos, paddle2_pos, puck_pos, goals, predicted_path=None):
         self.screen.blit(self.board_image, self.board_rect)
 
         # Draw paddles and puck
@@ -42,7 +42,8 @@ class GUICore:
             (self.board_width - player2_name.get_width() - 50, self.board_height - 30),
         )
 
-        self.draw_predicted_path(predicted_path)
+        if predicted_path:
+            self.draw_predicted_path(predicted_path)
 
         pygame.display.flip()
 
@@ -51,4 +52,6 @@ class GUICore:
 
     def draw_predicted_path(self, predicted_path):
         for position in predicted_path:
-            pygame.draw.circle(self.screen, (255, 0, 0), (int(position["x"]), int(position["y"])), 3)
+            pygame.draw.circle(
+                self.screen, (255, 0, 0), (int(position["x"]), int(position["y"])), 3
+            )

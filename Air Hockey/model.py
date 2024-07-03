@@ -2,14 +2,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from sklearn.preprocessing import minmax_scale
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+# Init hidden layer weights between two limits
 def hidden_init(layer):
-    fan_in = layer.weight.data.size()[0]
-    lim = 1.0 / np.sqrt(fan_in)
+    in_size = layer.weight.data.size()[0]
+    lim = 1.0 / np.sqrt(in_size)
     return (-lim, lim)
 
 
@@ -17,7 +17,7 @@ class ActorModel(nn.Module):
 
     def __init__(self, input_size, output_size, seed, fc1_units=256, fc2_units=256):
         super(ActorModel, self).__init__()
-        self.seed = torch.manual_seed(seed)
+        self.seed = torch.manual_seed(seed)  # Set seed for pytorch random
         self.fc1 = nn.Linear(input_size, fc1_units)
         self.fc2 = nn.Linear(fc1_units, fc2_units)
         self.fc3 = nn.Linear(fc2_units, output_size)
@@ -35,7 +35,7 @@ class ActorModel(nn.Module):
         x = F.relu(self.fc1(state))
         x = self.bn(x)
         x = F.relu(self.fc2(x))
-        x = F.tanh(self.fc3(x))
+        x = F.tanh(self.fc3(x))  # Scale output between -1 and 1
         return x
 
 
@@ -68,8 +68,7 @@ class CriticModel(nn.Module):
 class Actor_Critic_Models:
     def __init__(self, n_agents, state_size, action_size, seed=0):
         self.actor_local = ActorModel(state_size, action_size, seed).to(device)
-        self.actor_target = ActorModel(
-            state_size, action_size, seed).to(device)
+        self.actor_target = ActorModel(state_size, action_size, seed).to(device)
 
         critic_input_size = (state_size + action_size) * n_agents
 

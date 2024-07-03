@@ -36,11 +36,7 @@ Contributions to the project are welcome! If you have any ideas for improvements
 
 ## Video Demonstration
 
-**Game in Action**:
-<video width="600" controls>
-  <source src="readme_assets/air_hockey.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+![Game Demo](readme_assets/air_hockey.gif)
 
 ## Documentation
 

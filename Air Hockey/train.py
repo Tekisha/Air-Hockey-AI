@@ -107,7 +107,7 @@ def train_maddpg(
                 agent.save_agents()
     except KeyboardInterrupt:
         print("Training interrupted, saving agents...")
-        agent.save_agents()
+        # agent.save_agents()
 
     print("Training completed")
     pygame.quit()
